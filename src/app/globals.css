@@ -51,7 +51,24 @@ body {
   background-size: 20px 20px;
 }
 
-/* PC 환경 드래그 시 포스트잇 글자 블록 선택(파란색 선택) 차단 */
+/* '메모 내용' 입력창 이외의 모든 영역에서 글자 드래그 선택 차단 */
+*:not(textarea):not(input) {
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+}
+
+/* '메모 내용' 영역(textarea 및 input)에서만 글자 드래그 선택 허용 */
+textarea,
+input {
+  user-select: text !important;
+  -webkit-user-select: text !important;
+  -moz-user-select: text !important;
+  -ms-user-select: text !important;
+}
+
+/* 포스트잇 카드 내부 추가 보호 */
 [data-note-index],
 [data-note-index] * {
   user-select: none !important;
@@ -59,12 +76,6 @@ body {
   -moz-user-select: none !important;
   -ms-user-select: none !important;
   -webkit-user-drag: none;
-}
-
-/* 텍스트 입력창은 정상 선택 가능 */
-input, textarea {
-  user-select: text !important;
-  -webkit-user-select: text !important;
 }
 
 /* Explicit high-contrast text responsive to light/dark mode */
