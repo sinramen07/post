@@ -5,15 +5,16 @@ export type NoteColor = 'yellow' | 'pink' | 'green' | 'blue';
 export type NoteState = '진행중' | '완료' | '체크';
 
 export interface Note {
-  id: string;
-  content: string;
-  category: NoteCategory;
-  color: NoteColor;
-  colorCode?: number; // 1: yellow, 2: pink, 3: green, 4: blue (E열: 색상 숫자 타입)
-  createdAt: string; // B열: datetime
+  id: string; // Client unique identifier (guaranteed unique for React keys)
+  rowIndex?: number; // Row index in Google Sheet (for precision updates/deletions)
   timestamp?: string; // A열: timestamp (시트기록날짜및시간)
+  createdAt: string; // B열: datetime (메모생성날짜및시간)
+  category: NoteCategory; // C열: category (메모범주)
+  content: string; // D열: content (메모내용)
+  color: NoteColor; // E열: color (메모색상)
+  colorCode?: number; // E열: 1:노랑, 2:분홍, 3:초록, 4:파랑
   state: string; // F열: state ('완료', '체크', '진행중')
-  order: number; // G열: order
+  order: number; // G열: order (메모순서)
   rotation?: number;
   badgeTag?: string;
   isNew?: boolean;

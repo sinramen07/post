@@ -89,7 +89,8 @@ export default function Home() {
     color: NoteColor
   ) => {
     const randomTilt = +(Math.random() * 3 - 1.5).toFixed(1);
-    const tempId = String(Date.now());
+    // 고유한 클라이언트 식별자 생성 (React 키 충돌 방지)
+    const tempId = `note_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
     const formattedDate = formatKoreanDateTime(new Date().toISOString());
 
     const optimisticNote: Note = {
@@ -105,9 +106,12 @@ export default function Home() {
       isNew: true,
     };
 
-    const updated = [optimisticNote, ...notes];
-    setNotes(updated);
-    saveToLocal(updated);
+    // 상태 및 로컬 스토리지 업데이트
+    setNotes((prevNotes) => {
+      const next = [optimisticNote, ...prevNotes];
+      saveToLocal(next);
+      return next;
+    });
 
     try {
       const created = await createNoteInSheet({
@@ -119,47 +123,66 @@ export default function Home() {
         order: 0,
       });
 
-      setNotes((prev) =>
-        prev.map((n) => (n.id === tempId ? { ...created, isNew: false } : n))
-      );
+      // 구글 시트 등록 결과 반영 (기존 tempId를 유지하여 React 재렌더링 오류 방지)
+      setNotes((prevNotes) => {
+        const next = prevNotes.map((n) =>
+          n.id === tempId
+            ? {
+                ...n,
+                rowIndex: created.rowIndex,
+                timestamp: created.timestamp || n.timestamp,
+                isNew: false,
+              }
+            : n
+        );
+        saveToLocal(next);
+        return next;
+      });
     } catch (err) {
       console.error('Failed to sync new note to sheet:', err);
     }
-
-    setTimeout(() => {
-      setNotes((prev) =>
-        prev.map((n) => (n.id === tempId ? { ...n, isNew: false } : n))
-      );
-    }, 600);
   };
 
-  // DELETE Note immediately
+  // DELETE Note (고유 식별자 및 복합 키로 지정 메모만 정확히 삭제)
   const handleDeleteNote = async (id: string) => {
-    const nextNotes = notes.filter((n) => n.id !== id);
-    setNotes(nextNotes);
-    saveToLocal(nextNotes);
+    const noteToDelete = notes.find((n) => n.id === id);
+    if (!noteToDelete) return;
+
+    setNotes((prevNotes) => {
+      const next = prevNotes.filter((n) => n.id !== id);
+      saveToLocal(next);
+      return next;
+    });
 
     try {
-      await deleteNoteFromSheet(id);
+      await deleteNoteFromSheet({
+        timestamp: noteToDelete.timestamp,
+        rowIndex: noteToDelete.rowIndex,
+        content: noteToDelete.content,
+      });
     } catch (err) {
       console.error('Failed to delete note from sheet:', err);
     }
   };
 
-  // TOGGLE COMPLETE (F열: 체크 버튼을 눌러 완료가 되면 '완료'로 표시)
+  // TOGGLE COMPLETE (F열: 체크 버튼 클릭 시 해당 메모만 정확히 '완료'/'진행중' 토글)
   const handleToggleComplete = async (note: Note) => {
     const isCurrentlyCompleted = note.state === '완료' || note.state === '체크';
     const nextState = isCurrentlyCompleted ? '진행중' : '완료';
 
-    const updated = notes.map((n) =>
-      n.id === note.id ? { ...n, state: nextState } : n
-    );
-    setNotes(updated);
-    saveToLocal(updated);
+    setNotes((prevNotes) => {
+      const next = prevNotes.map((n) =>
+        n.id === note.id ? { ...n, state: nextState } : n
+      );
+      saveToLocal(next);
+      return next;
+    });
 
     try {
       await updateNoteInSheet({
-        timestamp: note.id,
+        timestamp: note.timestamp,
+        rowIndex: note.rowIndex,
+        content: note.content,
         state: nextState,
       });
     } catch (err) {
@@ -179,23 +202,29 @@ export default function Home() {
     newColor: NoteColor,
     newDatetime?: string
   ) => {
-    const updated = notes.map((n) =>
-      n.id === id
-        ? {
-            ...n,
-            content: newContent,
-            category: newCategory,
-            color: newColor,
-            createdAt: newDatetime || n.createdAt,
-          }
-        : n
-    );
-    setNotes(updated);
-    saveToLocal(updated);
+    const targetNote = notes.find((n) => n.id === id);
+    if (!targetNote) return;
+
+    setNotes((prevNotes) => {
+      const next = prevNotes.map((n) =>
+        n.id === id
+          ? {
+              ...n,
+              content: newContent,
+              category: newCategory,
+              color: newColor,
+              createdAt: newDatetime || n.createdAt,
+            }
+          : n
+      );
+      saveToLocal(next);
+      return next;
+    });
 
     try {
       await updateNoteInSheet({
-        timestamp: id,
+        timestamp: targetNote.timestamp,
+        rowIndex: targetNote.rowIndex,
         content: newContent,
         category: newCategory,
         color: newColor,
@@ -240,7 +269,9 @@ export default function Home() {
 
     try {
       const orderPayload = normalized.map((item) => ({
-        timestamp: item.id,
+        timestamp: item.timestamp,
+        rowIndex: item.rowIndex,
+        content: item.content,
         order: item.order,
       }));
       await reorderNotesInSheet(orderPayload);

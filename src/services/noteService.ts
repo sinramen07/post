@@ -3,13 +3,13 @@ import { formatKoreanDateTime } from '../utils/date';
 
 export interface SheetNoteRow {
   rowIndex?: number;
-  timestamp: string; // A열: 시트기록날짜및시간 (날짜 시간 타입)
-  datetime: string;  // B열: 메모생성날짜및시간 (날짜 시간 타입)
-  category: string;  // C열: 메모범주 (문자 타입)
-  content: string;   // D열: 메모내용 (문자 타입)
-  color: number | string; // E열: 메모색상 (숫자 타입 1~4)
-  state: string;     // F열: 체크 상태 (문자 타입 '완료'/'진행중')
-  order: number;     // G열: 메모순서 (숫자 타입)
+  timestamp: string; // A열: 시트기록날짜및시간
+  datetime: string;  // B열: 메모생성날짜및시간
+  category: string;  // C열: 메모범주
+  content: string;   // D열: 메모내용
+  color: number | string; // E열: 메모색상 (숫자 1~4)
+  state: string;     // F열: 체크 상태 ('완료'/'진행중')
+  order: number;     // G열: 메모순서
 }
 
 /**
@@ -32,10 +32,12 @@ export async function getNotesFromSheet(): Promise<Note[]> {
 
     return json.data.map((row: SheetNoteRow, index: number) => {
       const parsedColor = parseNoteColor(row.color);
-      const rowId = String(row.timestamp || `row_${index}_${Date.now()}`);
+      // 고유하고 충돌 없는 React key & ID 생성
+      const uniqueId = `sheet_${row.rowIndex ?? index + 2}_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
       
       return {
-        id: rowId,
+        id: uniqueId,
+        rowIndex: row.rowIndex,
         timestamp: String(row.timestamp || ''),
         content: row.content || '',
         category: (row.category || '할 일') as NoteCategory,
@@ -63,17 +65,13 @@ export async function createNoteInSheet(params: {
   datetime?: string;
   order?: number;
   state?: string;
-}): Promise<Note> {
+}): Promise<{ rowIndex?: number; timestamp: string; datetime: string }> {
   const now = new Date();
   const nowFormatted = formatKoreanDateTime(now.toISOString());
   
-  // A열: timestamp (시트기록날짜및시간)
   const timestamp = nowFormatted;
-  // B열: datetime (메모생성날짜및시간)
   const datetime = params.datetime || nowFormatted;
-  // E열: color (숫자 타입 1~4)
   const colorCode = COLOR_TO_NUMBER[params.color] || 1;
-  // F열: state ('진행중' 또는 '완료')
   const state = params.state || '진행중';
 
   const payload = {
@@ -99,17 +97,9 @@ export async function createNoteInSheet(params: {
   }
 
   return {
-    id: timestamp,
-    timestamp,
-    content: params.content,
-    category: params.category,
-    color: params.color,
-    colorCode,
-    createdAt: datetime,
-    state,
-    order: params.order ?? 0,
-    rotation: +(Math.random() * 2.4 - 1.2).toFixed(1),
-    isNew: true,
+    rowIndex: json.note?.rowIndex,
+    timestamp: json.note?.timestamp || timestamp,
+    datetime: json.note?.datetime || datetime,
   };
 }
 
@@ -117,7 +107,8 @@ export async function createNoteInSheet(params: {
  * Update a note in Google Sheets
  */
 export async function updateNoteInSheet(params: {
-  timestamp: string;
+  timestamp?: string;
+  rowIndex?: number;
   content?: string;
   category?: NoteCategory;
   color?: NoteColor;
@@ -128,9 +119,10 @@ export async function updateNoteInSheet(params: {
   const payload: Record<string, any> = {
     action: 'update',
     timestamp: params.timestamp,
+    rowIndex: params.rowIndex,
+    content: params.content,
   };
 
-  if (params.content !== undefined) payload.content = params.content;
   if (params.category !== undefined) payload.category = params.category;
   if (params.color !== undefined) payload.color = COLOR_TO_NUMBER[params.color] || 1;
   if (params.datetime !== undefined) payload.datetime = params.datetime;
@@ -152,10 +144,16 @@ export async function updateNoteInSheet(params: {
 /**
  * Delete a note from Google Sheets immediately
  */
-export async function deleteNoteFromSheet(timestamp: string): Promise<void> {
+export async function deleteNoteFromSheet(params: {
+  timestamp?: string;
+  rowIndex?: number;
+  content?: string;
+}): Promise<void> {
   const payload = {
     action: 'delete',
-    timestamp: String(timestamp),
+    timestamp: params.timestamp,
+    rowIndex: params.rowIndex,
+    content: params.content,
     hardDelete: true,
   };
 
@@ -174,7 +172,7 @@ export async function deleteNoteFromSheet(timestamp: string): Promise<void> {
 /**
  * Reorder notes in Google Sheets
  */
-export async function reorderNotesInSheet(orders: { timestamp: string; order: number }[]): Promise<void> {
+export async function reorderNotesInSheet(orders: { timestamp?: string; rowIndex?: number; content?: string; order: number }[]): Promise<void> {
   const payload = {
     action: 'reorder',
     orders,

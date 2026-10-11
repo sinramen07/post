@@ -9,7 +9,7 @@
  * 3. C열: category  (메모범주, 문자 타입)
  * 4. D열: content   (메모내용, 문자 타입)
  * 5. E열: color     (메모색상, 색상(숫자) 타입: 1:노랑, 2:분홍, 3:초록, 4:파랑)
- * 6. F열: state     (체크 버튼 완료 시 '완료' 또는 '체크', 문자 타입)
+ * 6. F열: state     (체크 버튼 완료 시 '완료', 기본 '진행중', 문자 타입)
  * 7. G열: order     (메모순서, 숫자 타입)
  * ==============================================================================
  */
@@ -47,9 +47,68 @@ function getSheet() {
  */
 function formatDateValue(val) {
   if (val instanceof Date) {
-    return Utilities.formatDate(val, "Asia/Seoul", "yyyy-MM-dd HH:mm:ss");
+    return Utilities.formatDate(val, "Asia/Seoul", "yyyy. MM. dd (E) HH:mm");
   }
   return String(val || "");
+}
+
+/**
+ * 정확한 타겟 행(Row) 인덱스 검색 함수
+ * (동일 분초에 작성된 메모가 여러 개 있어도 정확한 행을 찾아 삭제/수정)
+ */
+function findTargetRowIndex(sheet, data) {
+  const values = sheet.getDataRange().getValues();
+  if (values.length <= 1) return -1;
+
+  const targetRow = data.rowIndex ? Number(data.rowIndex) : -1;
+  const targetTs = data.timestamp ? String(data.timestamp) : "";
+  const targetContent = data.content ? String(data.content) : "";
+
+  // 1순위: 전달된 rowIndex의 내용(content) 또는 timestamp가 일치하는지 확인
+  if (targetRow > 1 && targetRow <= values.length) {
+    const row = values[targetRow - 1];
+    const rowContent = String(row[3]);
+    const rowTs = formatDateValue(row[0]);
+    if (!targetContent || rowContent === targetContent) {
+      return targetRow;
+    }
+    if (rowTs === targetTs) {
+      return targetRow;
+    }
+  }
+
+  // 2순위: 내용(content)과 timestamp가 모두 일치하는 행 검색 (역순: 최신순)
+  if (targetContent && targetTs) {
+    for (let i = values.length - 1; i >= 1; i--) {
+      const rowContent = String(values[i][3]);
+      const rowTs = formatDateValue(values[i][0]);
+      if (rowContent === targetContent && (rowTs === targetTs || String(values[i][0]) === targetTs)) {
+        return i + 1;
+      }
+    }
+  }
+
+  // 3순위: 내용(content)으로 고유 행 검색 (역순)
+  if (targetContent) {
+    for (let i = values.length - 1; i >= 1; i--) {
+      const rowContent = String(values[i][3]);
+      if (rowContent === targetContent) {
+        return i + 1;
+      }
+    }
+  }
+
+  // 4순위: timestamp로 검색 (역순)
+  if (targetTs) {
+    for (let i = values.length - 1; i >= 1; i--) {
+      const rowTs = formatDateValue(values[i][0]);
+      if (rowTs === targetTs || String(values[i][0]) === targetTs) {
+        return i + 1;
+      }
+    }
+  }
+
+  return -1;
 }
 
 /**
@@ -65,7 +124,7 @@ function readNotes(params = {}) {
     const rawTimestamp = formatDateValue(row[0]);
     const rawDatetime = formatDateValue(row[1]);
     const colorCode = Number(row[4]) || normalizeColorCode(row[4]);
-    const stateVal = String(row[5] || "");
+    const stateVal = String(row[5] || "진행중");
 
     return {
       rowIndex: index + 2,
@@ -74,7 +133,7 @@ function readNotes(params = {}) {
       category: String(row[2] || "할 일"),
       content: String(row[3] || ""),
       color: colorCode, // E열: 숫자 타입
-      state: stateVal,  // F열: 완료 여부 문자 타입
+      state: stateVal,  // F열: 완료 여부 문자 타입 ('완료' / '진행중')
       order: Number(row[6] ?? index), // G열: 숫자 타입
     };
   });
@@ -93,40 +152,46 @@ function createNote(data) {
   const sheet = getSheet();
   const now = new Date();
   
-  // A열: timestamp (시트기록날짜및시간, 날짜 시간 타입)
-  const timestamp = data.timestamp ? formatDateValue(data.timestamp) : Utilities.formatDate(now, "Asia/Seoul", "yyyy-MM-dd HH:mm:ss");
+  // A열: timestamp (시트기록날짜및시간)
+  const timestamp = data.timestamp ? formatDateValue(data.timestamp) : formatDateValue(now);
   
-  // B열: datetime (메모생성날짜및시간, 날짜 시간 타입)
-  const datetime = data.datetime ? formatDateValue(data.datetime) : Utilities.formatDate(now, "Asia/Seoul", "yyyy-MM-dd HH:mm:ss");
+  // B열: datetime (메모생성날짜및시간)
+  const datetime = data.datetime ? formatDateValue(data.datetime) : formatDateValue(now);
   
-  // C열: category (메모범주, 문자 타입)
+  // C열: category (메모범주)
   const category = String(data.category || "할 일");
   
-  // D열: content (메모내용, 문자 타입)
+  // D열: content (메모내용)
   const content = String(data.content || "");
   
-  // E열: color (메모색상, 색상(숫자) 타입)
+  // E열: color (메모색상, 숫자 타입 1~4)
   const color = normalizeColorCode(data.color);
   
-  // F열: state (체크 버튼 완료 시 '완료', 기본 '진행중')
+  // F열: state ('완료' 또는 '진행중')
   const state = String(data.state || "진행중");
   
-  // G열: order (메모순서, 숫자 타입)
+  // G열: order (숫자 타입)
   const order = data.order !== undefined ? Number(data.order) : (sheet.getLastRow() - 1);
 
   sheet.appendRow([timestamp, datetime, category, content, color, state, order]);
 
-  // A열, B열 날짜 시간 서식 명시 설정
   const lastRow = sheet.getLastRow();
-  sheet.getRange(lastRow, 1).setNumberFormat("yyyy-mm-dd hh:mm:ss");
-  sheet.getRange(lastRow, 2).setNumberFormat("yyyy-mm-dd hh:mm:ss");
   sheet.getRange(lastRow, 5).setNumberFormat("0"); // color 숫자
   sheet.getRange(lastRow, 7).setNumberFormat("0"); // order 숫자
 
   return {
     success: true,
     message: "메모가 성공적으로 추가되었습니다.",
-    note: { timestamp, datetime, category, content, color, state, order, rowIndex: lastRow }
+    note: {
+      rowIndex: lastRow,
+      timestamp,
+      datetime,
+      category,
+      content,
+      color,
+      state,
+      order
+    }
   };
 }
 
@@ -134,31 +199,14 @@ function createNote(data) {
  * 3. UPDATE (수정)
  */
 function updateNote(data) {
-  if (!data.timestamp && !data.rowIndex) {
-    throw new Error("수정할 메모의 timestamp 또는 rowIndex가 필요합니다.");
-  }
-
   const sheet = getSheet();
-  const values = sheet.getDataRange().getValues();
-  let targetRowIndex = -1;
-
-  if (data.rowIndex && Number(data.rowIndex) <= values.length) {
-    targetRowIndex = Number(data.rowIndex);
-  } else {
-    const target = String(data.timestamp);
-    for (let i = 1; i < values.length; i++) {
-      const rowTs = formatDateValue(values[i][0]);
-      if (rowTs === target || String(values[i][0]) === target) {
-        targetRowIndex = i + 1;
-        break;
-      }
-    }
-  }
+  const targetRowIndex = findTargetRowIndex(sheet, data);
 
   if (targetRowIndex === -1) {
-    throw new Error(`메모를 찾을 수 없습니다: ${data.timestamp}`);
+    throw new Error(`수정할 메모를 찾을 수 없습니다. (내용: ${data.content || data.timestamp})`);
   }
 
+  const values = sheet.getDataRange().getValues();
   const curr = values[targetRowIndex - 1];
 
   const updatedTimestamp = formatDateValue(curr[0]);
@@ -199,33 +247,15 @@ function updateNote(data) {
  * 4. DELETE (삭제)
  */
 function deleteNote(data) {
-  if (!data.timestamp && !data.rowIndex) {
-    throw new Error("삭제할 메모의 timestamp 또는 rowIndex가 필요합니다.");
-  }
-
   const sheet = getSheet();
-  const values = sheet.getDataRange().getValues();
-  let targetRowIndex = -1;
-
-  if (data.rowIndex && Number(data.rowIndex) <= values.length) {
-    targetRowIndex = Number(data.rowIndex);
-  } else {
-    const target = String(data.timestamp);
-    for (let i = 1; i < values.length; i++) {
-      const rowTs = formatDateValue(values[i][0]);
-      if (rowTs === target || String(values[i][0]) === target) {
-        targetRowIndex = i + 1;
-        break;
-      }
-    }
-  }
+  const targetRowIndex = findTargetRowIndex(sheet, data);
 
   if (targetRowIndex === -1) {
-    throw new Error(`삭제할 메모를 찾을 수 없습니다: ${data.timestamp}`);
+    throw new Error(`삭제할 메모를 찾을 수 없습니다. (내용: ${data.content || data.timestamp})`);
   }
 
   sheet.deleteRow(targetRowIndex);
-  return { success: true, message: "메모가 완전히 삭제되었습니다." };
+  return { success: true, message: "메모가 완전히 삭제되었습니다.", deletedRow: targetRowIndex };
 }
 
 /**
@@ -235,19 +265,14 @@ function reorderNotes(orders) {
   if (!Array.isArray(orders)) throw new Error("orders 배열이 필요합니다.");
   const sheet = getSheet();
   const values = sheet.getDataRange().getValues();
-  const orderMap = {};
+
   orders.forEach(item => {
-    orderMap[String(item.timestamp)] = Number(item.order);
+    const targetIdx = findTargetRowIndex(sheet, item);
+    if (targetIdx > 1) {
+      sheet.getRange(targetIdx, 7).setValue(Number(item.order));
+    }
   });
 
-  for (let i = 1; i < values.length; i++) {
-    const ts = formatDateValue(values[i][0]);
-    if (orderMap[ts] !== undefined) {
-      sheet.getRange(i + 1, 7).setValue(orderMap[ts]);
-    } else if (orderMap[String(values[i][0])] !== undefined) {
-      sheet.getRange(i + 1, 7).setValue(orderMap[String(values[i][0])]);
-    }
-  }
   return { success: true, message: "순서가 업데이트되었습니다." };
 }
 
