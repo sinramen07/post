@@ -59,13 +59,14 @@ body {
   -ms-user-select: none !important;
 }
 
-/* '메모 내용' 영역(textarea 및 input)에서만 글자 드래그 선택 허용 */
+/* '메모 내용' 영역(textarea 및 input)에서 글자 선택 허용 및 드래그 이동 차단 */
 textarea,
 input {
   user-select: text !important;
   -webkit-user-select: text !important;
   -moz-user-select: text !important;
   -ms-user-select: text !important;
+  -webkit-user-drag: none !important;
 }
 
 /* 포스트잇 카드 내부 추가 보호 */

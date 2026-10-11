@@ -140,6 +140,9 @@ export default function EditNoteModal({
               type="text"
               value={datetime}
               onChange={(e) => setDatetime(e.target.value)}
+              onDrop={(e) => e.preventDefault()}
+              onDragOver={(e) => e.preventDefault()}
+              onDragEnter={(e) => e.preventDefault()}
               placeholder="예: 2026. 10. 11 (일) 16:18"
               className="w-full rounded-xl border border-[#d6c7b0] dark:border-[#5c4d3e] bg-[#fdfbf6] dark:bg-[#2b2520] px-3.5 py-2 text-xs font-mono-vintage text-[#2c1810] dark:text-[#f3ece0] focus:ring-2 focus:ring-[#b8860b]/40 focus:border-[#b8860b] focus:outline-hidden"
             />
@@ -154,6 +157,9 @@ export default function EditNoteModal({
               rows={4}
               value={content}
               onChange={(e) => setContent(e.target.value)}
+              onDragStart={(e) => e.preventDefault()}
+              onDrop={(e) => e.preventDefault()}
+              onDragOver={(e) => e.preventDefault()}
               className="w-full rounded-xl border border-[#d6c7b0] dark:border-[#5c4d3e] bg-[#fdfbf6] dark:bg-[#2b2520] p-3 text-sm font-body-vintage text-[#2c1810] dark:text-[#f3ece0] focus:ring-2 focus:ring-[#b8860b]/40 focus:border-[#b8860b] focus:outline-hidden"
               placeholder="내용을 입력하세요..."
             />

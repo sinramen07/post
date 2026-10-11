@@ -78,6 +78,7 @@ export default function NoteInput({ onAddNote }: NoteInputProps) {
                 rows={3}
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
+                onDragStart={(e) => e.preventDefault()}
                 placeholder="포스트잇에 적을 내용을 입력하세요..."
                 className="w-full resize-none bg-transparent px-4 py-3 text-sm font-body-vintage text-black dark:text-white placeholder:text-stone-400 dark:placeholder:text-stone-500 focus:outline-hidden"
               />
