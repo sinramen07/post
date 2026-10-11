@@ -91,7 +91,7 @@ export default function NoteInput({ onAddNote }: NoteInputProps) {
             className="w-full group relative flex items-center justify-center gap-2 rounded-xl py-3 px-4 font-body-vintage text-sm font-semibold tracking-wide text-[#2b1704] dark:text-[#2a1705] bg-gradient-to-b from-[#e8ad35] to-[#c58b16] hover:from-[#f1b73e] hover:to-[#ce941d] active:from-[#b98010] active:to-[#aa730b] border border-[#a6740f] shadow-md hover:shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
           >
             <Plus className="w-4 h-4 transition-transform group-hover:rotate-90 duration-300" />
-            <span>+ 포스트잇 게시</span>
+            <span>포스트잇 게시</span>
           </button>
         </form>
       </div>
