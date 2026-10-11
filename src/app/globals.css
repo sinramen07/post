@@ -1,26 +1,125 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@custom-variant dark (&:where(.dark, .dark *));
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
+@layer base {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --font-serif: var(--font-eb-garamond), Georgia, serif;
+    --font-body: var(--font-literata), Georgia, serif;
+    --font-code: var(--font-space-mono), monospace;
+
+    /* Parchment Light Theme Tokens */
+    --desk-bg: #fff9ec;
+    --desk-dots: rgba(184, 134, 11, 0.18);
+    --ink-primary: #1c1917;
+    --heading-color: #000000;
+    --heading-bg-invert: #ffffff;
+    --ink-secondary: #5c4d44;
+    --ink-faint: rgba(92, 77, 68, 0.6);
+    --brass-accent: #b8860b;
+    --brass-glow: rgba(184, 134, 11, 0.25);
+    --parchment-card: #fbf8f2;
+    --parchment-border: rgba(44, 24, 16, 0.16);
+    --tape-bg: rgba(255, 255, 255, 0.75);
+    --tape-shadow: rgba(44, 24, 16, 0.08);
+  }
+
+  .dark {
+    /* Antique Scholar Dark Theme Tokens */
+    --desk-bg: #181513;
+    --desk-dots: rgba(212, 175, 55, 0.12);
+    --ink-primary: #f7f1e5;
+    --heading-color: #ffffff;
+    --heading-bg-invert: #000000;
+    --ink-secondary: #c7bcaf;
+    --ink-faint: rgba(199, 188, 175, 0.55);
+    --brass-accent: #d4af37;
+    --brass-glow: rgba(212, 175, 55, 0.3);
+    --parchment-card: #24201c;
+    --parchment-border: rgba(212, 175, 55, 0.22);
+    --tape-bg: rgba(255, 255, 255, 0.18);
+    --tape-shadow: rgba(0, 0, 0, 0.35);
   }
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--desk-bg);
+  color: var(--ink-primary);
+  font-family: var(--font-body);
+  transition: background-color 0.3s ease, color 0.3s ease;
+  background-image: radial-gradient(var(--desk-dots) 1.2px, transparent 1.2px);
+  background-size: 20px 20px;
+}
+
+/* Explicit high-contrast text responsive to light/dark mode */
+.contrast-heading {
+  color: var(--heading-color) !important;
+  transition: color 0.3s ease;
+}
+
+.contrast-badge {
+  background-color: var(--heading-color) !important;
+  color: var(--heading-bg-invert) !important;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.font-serif-vintage {
+  font-family: var(--font-serif);
+}
+
+.font-body-vintage {
+  font-family: var(--font-body);
+}
+
+.font-mono-vintage {
+  font-family: var(--font-code);
+}
+
+/* Stick Slap (착! 붙는) Animation */
+@keyframes stickSlap {
+  0% {
+    opacity: 0;
+    transform: scale(1.15) translateY(-22px) rotate(3deg);
+    box-shadow: 0 25px 35px -5px rgba(44, 24, 16, 0.38);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(0.97) translateY(2px) rotate(-1.5deg);
+    box-shadow: 0 3px 6px -1px rgba(44, 24, 16, 0.15);
+  }
+  80% {
+    transform: scale(1.02) translateY(-1px) rotate(0.8deg);
+  }
+  100% {
+    transform: scale(1) translateY(0) rotate(var(--note-rot, 0deg));
+    box-shadow: 0 8px 18px -4px rgba(44, 24, 16, 0.16), 0 3px 6px -2px rgba(44, 24, 16, 0.08);
+  }
+}
+
+.animate-stick-slap {
+  animation: stickSlap 0.45s cubic-bezier(0.2, 0.85, 0.35, 1.2) forwards;
+}
+
+/* Washi Tape Texture */
+.washi-tape {
+  background: var(--tape-bg);
+  box-shadow: 0 1px 3px var(--tape-shadow);
+  backdrop-filter: blur(2px);
+}
+
+/* Subtle Notebook Ruled Lines */
+.ruled-lines {
+  background-image: repeating-linear-gradient(
+    transparent,
+    transparent 27px,
+    rgba(44, 24, 16, 0.06) 28px
+  );
+}
+
+.dark .ruled-lines {
+  background-image: repeating-linear-gradient(
+    transparent,
+    transparent 27px,
+    rgba(255, 255, 255, 0.05) 28px
+  );
 }
