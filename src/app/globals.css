@@ -51,6 +51,22 @@ body {
   background-size: 20px 20px;
 }
 
+/* PC 환경 드래그 시 포스트잇 글자 블록 선택(파란색 선택) 차단 */
+[data-note-index],
+[data-note-index] * {
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+  -webkit-user-drag: none;
+}
+
+/* 텍스트 입력창은 정상 선택 가능 */
+input, textarea {
+  user-select: text !important;
+  -webkit-user-select: text !important;
+}
+
 /* Explicit high-contrast text responsive to light/dark mode */
 .contrast-heading {
   color: var(--heading-color) !important;

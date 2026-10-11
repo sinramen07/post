@@ -66,7 +66,12 @@ export default function NoteCard({
       ref={cardRef}
       data-note-index={index}
       draggable
-      onDragStart={(e) => onDragStart(e, index)}
+      onDragStart={(e) => {
+        if (typeof window !== 'undefined' && window.getSelection) {
+          window.getSelection()?.removeAllRanges();
+        }
+        onDragStart(e, index);
+      }}
       onDragOver={(e) => onDragOver(e, index)}
       onDrop={(e) => onDrop(e, index)}
       style={{
@@ -170,9 +175,9 @@ export default function NoteCard({
       </div>
 
       {/* Note Body Text */}
-      <div className="my-2 flex-1 ruled-lines py-1">
+      <div className="my-2 flex-1 ruled-lines py-1 select-none pointer-events-none">
         <p
-          className={`font-body-vintage text-[14px] leading-6 whitespace-pre-wrap break-words ${colorCfg.textColor} ${
+          className={`font-body-vintage text-[14px] leading-6 whitespace-pre-wrap break-words select-none pointer-events-none ${colorCfg.textColor} ${
             isCompleted ? 'line-through opacity-60 italic' : ''
           }`}
         >
