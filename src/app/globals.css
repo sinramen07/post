@@ -59,7 +59,7 @@ body {
   -ms-user-select: none !important;
 }
 
-/* '메모 내용' 영역(textarea 및 input)에서 글자 선택 허용 및 드래그 이동 차단 */
+/* '메모 내용' 영역(textarea 및 input)에서 글자 선택 허용 및 글자 드래그 이동 차단 */
 textarea,
 input {
   user-select: text !important;
@@ -69,14 +69,25 @@ input {
   -webkit-user-drag: none !important;
 }
 
-/* 포스트잇 카드 내부 추가 보호 */
-[data-note-index],
+/* 포스트잇 메모박스(카드)에 한하여 드래그 앤 드롭 이동 전용 허용 */
+[data-note-index] {
+  -webkit-user-drag: element !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  cursor: grab;
+}
+
+[data-note-index]:active {
+  cursor: grabbing;
+}
+
+/* 메모박스 내부 글자는 선택 및 개별 드래그 차단 (메모박스만 드래그되도록 보장) */
 [data-note-index] * {
   user-select: none !important;
   -webkit-user-select: none !important;
   -moz-user-select: none !important;
-  -ms-user-select: none !important;
-  -webkit-user-drag: none;
+  -webkit-user-drag: none !important;
 }
 
 /* Explicit high-contrast text responsive to light/dark mode */

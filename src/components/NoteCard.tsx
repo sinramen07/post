@@ -70,9 +70,15 @@ export default function NoteCard({
         if (typeof window !== 'undefined' && window.getSelection) {
           window.getSelection()?.removeAllRanges();
         }
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', String(index));
         onDragStart(e, index);
       }}
-      onDragOver={(e) => onDragOver(e, index)}
+      onDragOver={(e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        onDragOver(e, index);
+      }}
       onDrop={(e) => onDrop(e, index)}
       style={{
         ['--note-rot' as string]: `${note.rotation ?? 0}deg`,
